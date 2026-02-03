@@ -18,16 +18,37 @@ import chess.engine
 import threading
 import logging
 import os
+import shutil
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
 
 logger = logging.getLogger(__name__)
 
-# Path to Stockfish binary
-STOCKFISH_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), 
-    "stockfish/stockfish-ubuntu-x86-64-avx2"
-)
+
+def _find_stockfish() -> str:
+    """Find Stockfish binary in common locations"""
+    # Check if stockfish is in PATH
+    stockfish_in_path = shutil.which("stockfish")
+    if stockfish_in_path:
+        return stockfish_in_path
+
+    # Check common installation paths
+    common_paths = [
+        "/usr/games/stockfish",
+        "/usr/local/bin/stockfish",
+        "/opt/homebrew/bin/stockfish",  # macOS Homebrew
+        os.path.expanduser("~/stockfish/stockfish"),
+    ]
+
+    for path in common_paths:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+
+    # Default fallback
+    return "stockfish"
+
+
+STOCKFISH_PATH = _find_stockfish()
 
 # Background analyzer settings - doubled resources for faster analysis
 ANALYZER_THREADS = 4

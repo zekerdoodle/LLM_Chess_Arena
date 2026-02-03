@@ -3,12 +3,34 @@ import chess.engine
 import chess.pgn
 import os
 import random
+import shutil
 import threading
 from typing import List, Optional, Dict, Any
-from layer4_tools.web_search_tools import web_search
 
-# Path to Stockfish 17.1 binary (optimized AVX2 build)
-STOCKFISH_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stockfish/stockfish-ubuntu-x86-64-avx2")
+# Find Stockfish binary - check common locations
+def _find_stockfish() -> str:
+    """Find Stockfish binary in common locations"""
+    # Check if stockfish is in PATH
+    stockfish_in_path = shutil.which("stockfish")
+    if stockfish_in_path:
+        return stockfish_in_path
+
+    # Check common installation paths
+    common_paths = [
+        "/usr/games/stockfish",
+        "/usr/local/bin/stockfish",
+        "/opt/homebrew/bin/stockfish",  # macOS Homebrew
+        os.path.expanduser("~/stockfish/stockfish"),
+    ]
+
+    for path in common_paths:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+
+    # Default fallback
+    return "stockfish"
+
+STOCKFISH_PATH = _find_stockfish()
 
 # Engine settings for quick analysis (model tools)
 # Doubled resources for faster tool responses
@@ -222,6 +244,9 @@ def _analyze_move_fallback(board: chess.Board, move_san: str) -> Dict[str, Any]:
 
 async def web_search_tool(query: str) -> str:
     """
-    Performs a web search using the existing tool.
+    Web search for opening theory (placeholder - requires external API).
+
+    To enable web search, configure PERPLEXITY_API_KEY or implement
+    your own search provider.
     """
-    return await web_search(query=query)
+    return f"Web search not configured. Query was: {query}"

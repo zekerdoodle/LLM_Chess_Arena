@@ -1,12 +1,20 @@
-python-chess
-openai
-google-generativeai
-google-genai
-anthropic
-stockfish
-flask
-flask-cors
-pyyaml
-pydantic
-tenacity
-python-dotenv
+# LLM Chess Arena Dependencies
+
+# Chess engine
+python-chess>=1.999
+
+# Web server
+flask>=3.0
+flask-cors>=4.0
+
+# LLM API clients
+openai>=1.0
+google-generativeai>=0.5
+anthropic>=0.25
+
+# Configuration
+pyyaml>=6.0
+python-dotenv>=1.0
+
+# Token counting (optional but recommended)
+tiktoken>=0.5

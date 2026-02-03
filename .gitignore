@@ -5,7 +5,8 @@
 venv/
 .venv/
 
-# Stockfish tarballs (large files - download separately)
+# Stockfish binaries (download separately)
+stockfish/
 *.tar
 
 # Python cache
