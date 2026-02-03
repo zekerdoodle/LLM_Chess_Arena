@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Chess Arena | Grandmaster Edition</title>
+
+    <!-- Chessboard.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"
+        integrity="sha384-q94+BZtLrkL1/ohfjR8c6L+A6qzNH9R2hBLwyoAfu3i/WCvQjzL2RQJ3uNHDISdU" crossorigin="anonymous">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+        integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2"
+        crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"
+        integrity="sha384-8Vi8VHwn3vjQ9eUHUxex3JSN/NFqUg3QbPyX8kWyb93+8AC/pPWTzj+nHtbC5bxD"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"
+        integrity="sha512-xRllwz3FhUL694t91Q6Dlp8c6TAVol79f+L7lXRy8oUItYMeX8e+27+E+r+gH9r1tQIe4c5iQFn0n4FcfD4w=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(30, 41, 59, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-highlight: rgba(255, 255, 255, 0.05);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(to right, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.05em;
+        }
+
+        .status-badge {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        main {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 40px;
+            width: 100%;
+            max-width: 1600px;
+            padding: 40px;
+            flex: 1;
+        }
+
+        /* Player Panels */
+        .player-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 0;
+            /* Prevent overflow */
+        }
+
+        .player-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .player-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .player-card.active {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .player-card.active::before {
+            opacity: 1;
+        }
+
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .player-role {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .player-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 4px 0 0 0;
+            font-family: var(--font-main);
+            letter-spacing: -0.02em;
+        }
+
+        .player-model-id {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            opacity: 0.7;
+        }
+
+        .material-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .reasoning-container {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            overflow-y: auto;
+            max-height: 500px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .reasoning-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reasoning-title::before {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-purple);
+        }
+
+        /* Board Section */
+        .board-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .eval-bar-container {
+            width: 20px;
+            height: 600px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--glass-border);
+        }
+
+        .eval-bar-fill {
+            width: 100%;
+            height: 50%;
+            /* Start at 50% (0.0) */
+            background: #fff;
+            /* White advantage */
+            position: absolute;
+            bottom: 0;
+            transition: height 0.5s ease;
+        }
+
+        .eval-score {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.6rem;
+            color: #aaa;
+            font-family: var(--font-mono);
+            z-index: 10;
+        }
+
+        .eval-depth {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.5rem;
+            color: #666;
+            font-family: var(--font-mono);
+            z-index: 10;
+        }
+
+        .board-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        #board {
+            width: 600px;
+            border-radius: 4px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            border: 8px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+        }
+
+        .btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: var(--font-main);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--text-secondary);
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .commentary-box {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .commentary-text {
+            font-size: 1.1rem;
+            font-style: italic;
+            color: #e2e8f0;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 32px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 16px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Highlight Last Move */
+        .highlight-square {
+            box-shadow: inset 0 0 3px 3px yellow;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">LLM CHESS ARENA</div>
+        <div class="status-badge" id="game-status">Ready to Initialize</div>
+    </header>
+
+    <main>
+        <!-- White Player -->
+        <div class="player-panel">
+            <div class="player-card" id="card-white">
+                <div class="player-header">
+                    <div>
+                        <div class="player-role">White</div>
+                        <h2 class="player-name" id="name-white">GPT-5.1</h2>
+                        <div class="player-model-id" id="model-id-white">gpt-5.1-thinking</div>
+                    </div>
+                    <div class="material-badge" id="material-white">0</div>
+                </div>
+            </div>
+            <div class="reasoning-container">
+                <div class="reasoning-title">Reasoning Stream</div>
+                <div id="reasoning-white">Waiting for move...</div>
+            </div>
+        </div>
+
+        <!-- Board -->
+        <div class="board-section">
+            <div class="board-container">
+                <div class="eval-bar-container">
+                    <div class="eval-score" id="eval-score">0.0</div>
+                    <div class="eval-bar-fill" id="eval-bar-fill"></div>
+                    <div class="eval-depth" id="eval-depth">d0</div>
+                </div>
+                <div id="board"></div>
+            </div>
+
+            <div class="commentary-box">
+                <div class="commentary-text" id="commentary-text">
+                    "The game is about to begin. Place your bets."
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" id="start-btn">New Game</button>
+                <button class="btn btn-danger" id="stop-btn"
+                    style="display: none; background: var(--accent-red); border-color: var(--accent-red);">Stop
+                    Game</button>
+                <button class="btn" id="copy-pgn-btn" style="background: transparent; border: 1px solid var(--glass-border); font-size: 0.8rem; padding: 8px 12px;" title="Copy game PGN">📋 Copy PGN</button>
+            </div>
+            
+            <!-- PGN Display Panel -->
+            <div id="pgn-panel" style="margin-top: 20px; width: 100%; max-width: 600px; background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; border: 1px solid var(--glass-border); display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem;">Game PGN</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                        <span id="pgn-white-time">⬜ 0:00</span> | <span id="pgn-black-time">⬛ 0:00</span>
+                    </div>
+                </div>
+                <div id="pgn-display" style="font-family: 'Courier New', monospace; font-size: 0.85rem; line-height: 1.6; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-primary); cursor: text; user-select: text;">
+                    1. ...
+                </div>
+            </div>
+
+            <!-- Live Config Panel -->
+            <div id="live-config"
+                style="margin-top: 20px; width: 100%; max-width: 600px; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; border: 1px solid var(--glass-border); font-size: 0.85rem; color: var(--text-secondary); display: none;">
+                <div style="font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Active Configuration</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div><span style="color: #fff;">White:</span> <span id="cfg-white">-</span></div>
+                    <div><span style="color: #fff;">Black:</span> <span id="cfg-black">-</span></div>
+                    <div style="grid-column: span 2;"><span style="color: #fff;">Commentary:</span> <span
+                            id="cfg-commentary">-</span></div>
+                    <div style="grid-column: span 2;"><span style="color: #fff;">Tools:</span> <span
+                            id="cfg-tools">-</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Black Player -->
+        <div class="player-panel">
+            <div class="player-card" id="card-black">
+                <div class="player-header">
+                    <div>
+                        <div class="player-role">Black</div>
+                        <h2 class="player-name" id="name-black">Gemini-3</h2>
+                        <div class="player-model-id" id="model-id-black">gemini-3-pro-preview</div>
+                    </div>
+                    <div class="material-badge" id="material-black">0</div>
+                </div>
+            </div>
+            <div class="reasoning-container">
+                <div class="reasoning-title">Reasoning Stream</div>
+                <div id="reasoning-black">Waiting for move...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Game Configuration</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+
+            <div class="form-grid">
+                <div>
+                    <div class="form-group">
+                        <label class="form-label">White Model</label>
+                        <input type="text" class="form-control" id="white-model" list="model-suggestions"
+                            placeholder="Type or select model...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Additional Instructions (optional)</label>
+                        <textarea class="form-control" id="white-prompt" placeholder="e.g. Play aggressively, prefer gambits..."></textarea>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label class="form-label">Black Model</label>
+                        <input type="text" class="form-control" id="black-model" list="model-suggestions"
+                            placeholder="Type or select model...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Additional Instructions (optional)</label>
+                        <textarea class="form-control" id="black-prompt" placeholder="e.g. Play defensively, avoid risks..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Commentary Model</label>
+                <input type="text" class="form-control" id="commentary-model" list="model-suggestions"
+                    placeholder="Type or select model (e.g. gpt-4o, grok-beta)...">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Commentary Style (optional)</label>
+                <textarea class="form-control" id="commentary-prompt"
+                    placeholder="e.g. Speak like a pirate, use chess puns..."></textarea>
+            </div>
+
+            <datalist id="model-suggestions">
+                <option value="gpt-5.1">
+                <option value="gpt-4o">
+                <option value="gemini-3-pro-preview">
+                <option value="grok-beta">
+                <option value="grok-2">
+                <option value="o1-preview">
+            </datalist>
+
+            <div class="form-group">
+                <label class="form-label">Import PGN (optional)</label>
+                <textarea class="form-control" id="start-pgn" rows="4" placeholder="Paste PGN to continue from a position...
+e.g. 1. e4 e5 2. Nf3 Nc6 3. Bb5"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Enabled Tools</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-label"><input type="checkbox" id="tool-legal" checked> Legal Moves</label>
+                    <label class="checkbox-label"><input type="checkbox" id="tool-eval" checked> Stockfish Eval</label>
+                    <label class="checkbox-label"><input type="checkbox" id="tool-analyze" checked> Analyze Move</label>
+                    <label class="checkbox-label"><input type="checkbox" id="tool-web" checked> Web Search</label>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%" id="save-start-btn">Start Match</button>
+        </div>
+    </div>
+
+    <script>
+        // Board Init
+        var board = Chessboard('board', {
+            draggable: false,
+            position: 'start',
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+        });
+        $(window).resize(board.resize);
+
+        // Modal Logic
+        const modal = document.getElementById('settingsModal');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const closeModal = document.querySelector('.close-modal');
+        const saveStartBtn = document.getElementById('save-start-btn');
+
+        let isStopping = false;
+
+        // Set defaults
+        $('#white-model').val('gpt-5.1');
+        $('#black-model').val('gemini-3-pro-preview');
+        $('#commentary-model').val('gpt-5-mini');
+
+        startBtn.onclick = () => {
+            if (startBtn.disabled) return;
+            modal.style.display = 'flex';
+        };
+
+        stopBtn.onclick = () => {
+            if (!confirm("Are you sure you want to stop the game?")) return;
+            isStopping = true;
+            stopBtn.disabled = true;
+            stopBtn.textContent = "Stopping...";
+
+            $.post('/api/stop', function (res) {
+                console.log("Game stopped", res);
+            });
+        };
+
+        closeModal.onclick = () => modal.style.display = 'none';
+
+        window.onclick = (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        };
+
+        // Game Logic
+        // Format seconds to clock format (H:MM:SS or M:SS)
+        function formatTime(seconds) {
+            if (seconds === undefined || seconds === null) return "0:00";
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            if (h > 0) {
+                return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+        
+        // Build formatted PGN display from game_log
+        function buildPgnDisplay(gameLog) {
+            if (!gameLog || gameLog.length === 0) return "1. ...";
+            
+            let pgn = "";
+            let moveNum = 1;
+            
+            for (let i = 0; i < gameLog.length; i++) {
+                const entry = gameLog[i];
+                const timeStr = entry.time_seconds > 0 ? ` (${formatTime(entry.time_seconds)})` : "";
+                
+                if (entry.turn === "White") {
+                    pgn += `${moveNum}. ${entry.move}${timeStr} `;
+                } else {
+                    pgn += `${entry.move}${timeStr} `;
+                    moveNum++;
+                }
+            }
+            
+            return pgn.trim() || "1. ...";
+        }
+        
+        function updateState() {
+            $.get('/api/state', function (data) {
+                if (!data.fen) return;
+
+                // Board
+                if (board.fen() !== data.fen) {
+                    board.position(data.fen);
+                }
+
+                // Highlight Last Move
+                $('.square-55d63').removeClass('highlight-square');
+                if (data.last_move_from && data.last_move_to) {
+                    $('.square-' + data.last_move_from).addClass('highlight-square');
+                    $('.square-' + data.last_move_to).addClass('highlight-square');
+                }
+
+                // Status & Buttons
+                if (data.game_over) {
+                    $('#game-status').text(`Game Over: ${data.result}`);
+                    $('#game-status').css('border-color', 'var(--accent-red)');
+
+                    startBtn.style.display = 'block';
+                    startBtn.disabled = false;
+                    startBtn.textContent = "New Game";
+
+                    stopBtn.style.display = 'none';
+                    $('#live-config').hide();
+                    isStopping = false; // Reset flag
+                } else {
+                    if (data.move_number === 0) {
+                        $('#game-status').text("Ready to Start");
+                    } else {
+                        $('#game-status').text(`Move ${data.move_number}: ${data.turn} to move`);
+                    }
+                    $('#game-status').css('border-color', 'var(--glass-border)');
+
+                    if (isStopping) {
+                        // Keep showing stopping state
+                        stopBtn.style.display = 'block';
+                        stopBtn.disabled = true;
+                        stopBtn.textContent = "Stopping...";
+                        startBtn.style.display = 'none';
+                    } else if (data.move_number > 0) {
+                        startBtn.style.display = 'none';
+                        stopBtn.style.display = 'block';
+                        stopBtn.disabled = false;
+                        stopBtn.textContent = "Stop Game";
+                    } else {
+                        startBtn.style.display = 'block';
+                        stopBtn.style.display = 'none';
+                        $('#live-config').hide();
+                    }
+                }
+
+                // Active Player
+                if (data.turn === 'White') {
+                    $('#card-white').addClass('active');
+                    $('#card-black').removeClass('active');
+                } else {
+                    $('#card-black').addClass('active');
+                    $('#card-white').removeClass('active');
+                }
+
+                // Info
+                // Use data.white_model / data.black_model if available, else fallback
+                const whiteName = data.white_model || $('#white-model').val();
+                const blackName = data.black_model || $('#black-model').val();
+
+                $('#name-white').text(whiteName.split('-')[0].toUpperCase()); // Short name
+                $('#model-id-white').text(whiteName);
+
+                $('#name-black').text(blackName.split('-')[0].toUpperCase());
+                $('#model-id-black').text(blackName);
+
+                $('#material-white').text(data.material?.white || 0);
+                $('#material-black').text(data.material?.black || 0);
+
+                $('#commentary-text').text(data.commentary || "...");
+
+                // Reasoning
+                if (data.last_move) {
+                    const target = data.player.includes('White') ? '#reasoning-white' : '#reasoning-black';
+                    $(target).text(data.reasoning || "No reasoning provided.");
+                }
+
+                // Eval Bar - now handled by SSE stream, remove from polling
+                // updateEvalBar(data.eval);
+
+                // Live Config
+                if (data.config) {
+                    $('#live-config').show();
+                    $('#cfg-white').text(data.config.white_model || whiteName);
+                    $('#cfg-black').text(data.config.black_model || blackName);
+                    $('#cfg-commentary').text(data.config.commentary_model || "gpt-5-mini");
+                    $('#cfg-tools').text((data.config.tools || []).join(', ') || "None");
+                } else {
+                    $('#live-config').hide();
+                }
+                
+                // PGN Panel
+                if (data.game_log && data.game_log.length > 0) {
+                    $('#pgn-panel').show();
+                    $('#pgn-display').text(buildPgnDisplay(data.game_log));
+                    $('#pgn-white-time').text('⬜ ' + formatTime(data.white_total_time));
+                    $('#pgn-black-time').text('⬛ ' + formatTime(data.black_total_time));
+                } else if (data.move_number > 0) {
+                    $('#pgn-panel').show();
+                } else {
+                    $('#pgn-panel').hide();
+                }
+            });
+        }
+
+        function updateEvalBar(score, depth) {
+            // Score is in centipawns (e.g. 150 = +1.5 for white)
+            // Or string "Mate in X"
+            let val = 0;
+            let text = "0.0";
+
+            if (typeof score === 'string' && score.includes('Mate')) {
+                // Mate
+                if (score.includes('-')) {
+                    // Black mate
+                    val = -1000;
+                    text = "-M";
+                } else {
+                    val = 1000;
+                    text = "+M";
+                }
+            } else {
+                val = parseFloat(score);
+                text = (val / 100).toFixed(1);
+                if (val > 0) text = "+" + text;
+            }
+
+            $('#eval-score').text(text);
+            
+            // Update depth display if provided
+            if (depth !== undefined) {
+                $('#eval-depth').text('d' + depth);
+            }
+
+            // Calculate height percentage
+            // Clamp between -500 and +500 for visual range
+            const clamped = Math.max(-500, Math.min(500, val));
+            // Map -500..500 to 0..100%
+            // 0 -> 50%
+            // 500 -> 100%
+            // -500 -> 0%
+            const percent = ((clamped + 500) / 1000) * 100;
+            $('#eval-bar-fill').css('height', `${percent}%`);
+        }
+        
+        // SSE connection for live eval updates
+        let evalEventSource = null;
+        
+        function connectEvalStream() {
+            if (evalEventSource) {
+                evalEventSource.close();
+            }
+            
+            evalEventSource = new EventSource('/api/eval-stream');
+            
+            evalEventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    // data.score is in centipawns, data.depth is search depth
+                    updateEvalBar(data.score, data.depth);
+                } catch (e) {
+                    console.error('Error parsing eval stream:', e);
+                }
+            };
+            
+            evalEventSource.onerror = function(event) {
+                console.log('Eval stream error, reconnecting in 2s...');
+                evalEventSource.close();
+                setTimeout(connectEvalStream, 2000);
+            };
+            
+            console.log('Connected to eval stream');
+        }
+        
+        // Start SSE connection on page load
+        connectEvalStream();
+        
+        // Helper function to copy text (with fallback for non-HTTPS)
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text);
+            } else {
+                // Fallback for non-HTTPS
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    return Promise.resolve();
+                } catch (err) {
+                    return Promise.reject(err);
+                } finally {
+                    textArea.remove();
+                }
+            }
+        }
+        
+        // Copy PGN button
+        $('#copy-pgn-btn').click(function() {
+            const btn = $(this);
+            $.get('/api/pgn', function(data) {
+                if (data.pgn) {
+                    copyToClipboard(data.pgn).then(() => {
+                        btn.text('✓ Copied!');
+                        setTimeout(() => btn.text('📋 Copy PGN'), 1500);
+                    }).catch(err => {
+                        console.error('Failed to copy PGN:', err);
+                        alert('Failed to copy. Try selecting and copying manually.');
+                    });
+                } else {
+                    alert('No PGN available yet. Start a game first.');
+                }
+            }).fail(function() {
+                alert('Failed to fetch PGN from server.');
+            });
+        });
+
+        // Start Game
+        saveStartBtn.onclick = () => {
+            const config = {
+                white_model: $('#white-model').val(),
+                black_model: $('#black-model').val(),
+                commentary_model: $('#commentary-model').val(),
+                white_prompt: $('#white-prompt').val(),
+                black_prompt: $('#black-prompt').val(),
+                commentary_prompt: $('#commentary-prompt').val(),
+                start_pgn: $('#start-pgn').val(),
+                tools: []
+            };
+
+            if ($('#tool-legal').is(':checked')) config.tools.push('get_legal_moves');
+            if ($('#tool-eval').is(':checked')) config.tools.push('evaluate_position');
+            if ($('#tool-analyze').is(':checked')) config.tools.push('analyze_move');
+            if ($('#tool-web').is(':checked')) config.tools.push('web_search');
+
+            modal.style.display = 'none';
+            startBtn.disabled = true;
+            startBtn.textContent = "Match in Progress...";
+
+            // Reset UI
+            $('#reasoning-white').text("Waiting...");
+            $('#reasoning-black').text("Waiting...");
+            $('#pgn-display').text("1. ...");
+
+            $.ajax({
+                url: '/api/start',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(config),
+                success: (res) => {
+                    console.log("Game started", res);
+                    // Check for PGN parse error
+                    if (res.pgn_parse_error) {
+                        alert("PGN Import Warning: " + res.pgn_parse_error);
+                    }
+                    // Force immediate update to show stop button
+                    setTimeout(updateState, 500);
+                },
+                error: (err) => {
+                    console.error(err);
+                    startBtn.disabled = false;
+                    startBtn.textContent = "New Game";
+                    alert("Failed to start game");
+                }
+            });
+        };
+
+        // Polling
+        setInterval(updateState, 1000);
+
+    </script>
+</body></html>

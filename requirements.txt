@@ -1,0 +1,12 @@
+python-chess
+openai
+google-generativeai
+google-genai
+anthropic
+stockfish
+flask
+flask-cors
+pyyaml
+pydantic
+tenacity
+python-dotenv

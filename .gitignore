@@ -1,0 +1,30 @@
+# Environment and secrets
+.env
+
+# Python virtual environment
+venv/
+.venv/
+
+# Stockfish tarballs (large files - download separately)
+*.tar
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Logs
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
